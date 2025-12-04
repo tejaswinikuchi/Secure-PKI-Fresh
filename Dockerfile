@@ -24,7 +24,7 @@ FROM python:3.11-slim
 ENV TZ=UTC
 WORKDIR /app
 
-# Install cron + timezone
+# Install cron + timezone support
 RUN apt-get update && \
     apt-get install -y --no-install-recommends cron tzdata && \
     ln -sf /usr/share/zoneinfo/UTC /etc/localtime && \
@@ -41,15 +41,13 @@ COPY student_private.pem /app/student_private.pem
 COPY student_public.pem /app/student_public.pem
 COPY instructor_public.pem /app/instructor_public.pem
 
+# Copy cron script + cron job
+COPY scripts/ /app/scripts/
+COPY cron/2fa-cron /etc/cron.d/2fa-cron
 
-# ---------------------------------------------------------
-# STEP 8 DOES NOT REQUIRE REAL CRON JOBS YET
-# Create an empty cron file so cron service works
-# ---------------------------------------------------------
-RUN echo "" > /etc/cron.d/seed_cron && \
-    chmod 0644 /etc/cron.d/seed_cron && \
-    crontab /etc/cron.d/seed_cron
-
+# Configure cron job
+RUN chmod 0644 /etc/cron.d/2fa-cron && \
+    crontab /etc/cron.d/2fa-cron
 
 # Create volume mount points
 RUN mkdir -p /data && mkdir -p /cron && \
@@ -57,8 +55,8 @@ RUN mkdir -p /data && mkdir -p /cron && \
 
 VOLUME ["/data", "/cron"]
 
-# Expose port
+# Expose API port
 EXPOSE 8080
 
-# Start cron + API server
+# Start cron + FastAPI app
 CMD cron && python -m uvicorn api:app --host 0.0.0.0 --port 8080
