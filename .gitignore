@@ -1,0 +1,13 @@
+# Encrypted seed (NEVER commit this)
+encrypted_seed.txt
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# IDE/editor folders
+.vscode/
+.idea/
