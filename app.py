@@ -10,6 +10,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 # STEP 1 — Load RSA Private Key
 # ----------------------------------------------------------
 def load_private_key():
+    # IMPORTANT: Use absolute path inside container
     with open("/app/student_private.pem", "rb") as f:
         key_data = f.read()
 
@@ -21,7 +22,7 @@ def load_private_key():
 
 
 # ----------------------------------------------------------
-# STEP 2 — Decrypt seed using RSA/OAEP SHA-256
+# STEP 2 — Decrypt seed with RSA/OAEP-SHA256
 # ----------------------------------------------------------
 def decrypt_seed(encrypted_seed_b64: str, private_key) -> str:
     ciphertext = base64.b64decode(encrypted_seed_b64)
@@ -37,21 +38,21 @@ def decrypt_seed(encrypted_seed_b64: str, private_key) -> str:
 
     seed = decrypted_bytes.decode("utf-8").strip()
 
+    # Validate 64-char hex
     if len(seed) != 64:
-        raise ValueError(f"Seed length invalid: expected 64, got {len(seed)}")
+        raise ValueError(f"Invalid seed length: expected 64, got {len(seed)}")
 
-    allowed = "0123456789abcdef"
-    for c in seed.lower():
-        if c not in allowed:
-            raise ValueError("Seed contains non-hex characters")
+    if not all(c in "0123456789abcdef" for c in seed.lower()):
+        raise ValueError("Seed contains invalid hex characters")
 
     return seed.lower()
 
 
 # ----------------------------------------------------------
-# STEP 3 — Save seed to /data/seed.txt  (IMPORTANT FIX)
+# STEP 3 — Save seed to /data/seed.txt (Docker volume)
 # ----------------------------------------------------------
 def save_seed(seed: str):
+    # /data is the Docker volume mount
     os.makedirs("/data", exist_ok=True)
     path = "/data/seed.txt"
 
@@ -62,24 +63,22 @@ def save_seed(seed: str):
 
 
 # ----------------------------------------------------------
-# STEP 6 — Validate hex seed
+# Helper: Validate hex seed
 # ----------------------------------------------------------
 def _validate_hex_seed(hex_seed: str) -> bytes:
     s = hex_seed.strip().lower()
 
     if len(s) != 64:
-        raise ValueError(f"hex_seed must be 64 hex characters (got {len(s)})")
+        raise ValueError(f"hex_seed must be 64 characters (got {len(s)})")
 
-    allowed = "0123456789abcdef"
-    for c in s:
-        if c not in allowed:
-            raise ValueError("hex_seed contains non-hex characters")
+    if not all(c in "0123456789abcdef" for c in s):
+        raise ValueError("hex_seed contains invalid characters")
 
     return binascii.unhexlify(s)
 
 
 # ----------------------------------------------------------
-# STEP 6 — Generate TOTP Code
+# Generate TOTP Code
 # ----------------------------------------------------------
 def generate_totp_code(hex_seed: str) -> str:
     seed_bytes = _validate_hex_seed(hex_seed)
@@ -90,7 +89,7 @@ def generate_totp_code(hex_seed: str) -> str:
 
 
 # ----------------------------------------------------------
-# STEP 6 — Verify TOTP Code
+# Verify TOTP Code
 # ----------------------------------------------------------
 def verify_totp_code(hex_seed: str, code: str, valid_window: int = 1) -> bool:
     seed_bytes = _validate_hex_seed(hex_seed)
@@ -105,9 +104,11 @@ def verify_totp_code(hex_seed: str, code: str, valid_window: int = 1) -> bool:
 
 
 # ----------------------------------------------------------
-# STEP 4 — Main Flow
+# MAIN — Used only when running locally, not in Docker
 # ----------------------------------------------------------
 def main():
+    print("Running local decrypt...")
+
     with open("encrypted_seed.txt", "r") as f:
         encrypted_seed_b64 = f.read().strip()
 
@@ -116,9 +117,9 @@ def main():
 
     save_seed(seed)
 
-    print("Decryption completed successfully!")
-    print("Decrypted seed:", seed)
-    print("Current TOTP Code:", generate_totp_code(seed))
+    print("Decryption successful!")
+    print("Seed:", seed)
+    print("Current TOTP:", generate_totp_code(seed))
 
 
 if __name__ == "__main__":
