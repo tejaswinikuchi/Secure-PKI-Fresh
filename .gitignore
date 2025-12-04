@@ -11,3 +11,7 @@ __pycache__/
 # IDE/editor folders
 .vscode/
 .idea/
+data/seed.txt
+body.json
+encrypted_seed.json
+shown.json
