@@ -1,0 +1,7 @@
+cryptography
+pyotp
+fastapi
+uvicorn[standard]
+pyotp
+cryptography
+
