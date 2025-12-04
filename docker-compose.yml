@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  app:
+    container_name: secure-pki-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    ports:
+      - "8080:8080"
+
+    environment:
+      TZ: "UTC"
+
+    volumes:
+      # Named volumes (persist data)
+      - seed-data:/data
+      - cron-output:/cron
+
+      # Mount keys (read-only)
+      - ./student_private.pem:/app/student_private.pem:ro
+      - ./student_public.pem:/app/student_public.pem:ro
+      - ./instructor_public.pem:/app/instructor_public.pem:ro
+
+    restart: unless-stopped
+
+volumes:
+  seed-data:
+  cron-output:
